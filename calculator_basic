@@ -1,0 +1,168 @@
+
+int latchPin = 16; //Pin connected to ST_CP of 74HC595
+int clockPin = 10;//Pin connected to SH_CP of 74HC595
+int dataPin = 15;//Pin connected to DS of 74HC595
+
+int azero = 3;
+int aone = 4;
+int bzero = 5;
+int bone = 6;
+int momButton = 2;
+int aIn;
+int bIn;
+int momButt = 0;
+byte shiftA = B11111111;
+byte shiftB = B11111111;
+bool tUpt = true;
+int currentmill = millis();
+int lastmill = 0;
+int tSec = 1;
+byte seconds = B11111111;
+byte minutes = B11111111;
+byte hours = B11111111;
+void setup() {
+  //Start Serial for debuging purposes  
+  Serial.begin(9600);
+  //set pins to output because they are addressed in the main loop
+  pinMode(latchPin, OUTPUT);
+  pinMode(azero, INPUT);
+  pinMode(aone, INPUT);
+  pinMode(bzero, INPUT);
+  pinMode(bone, INPUT);
+    pinMode(momButton, INPUT);
+
+
+
+}
+
+void loop() {
+
+  currentmill = millis();
+  digitalWrite(latchPin, 0);
+  momButt = digitalRead(azero);
+  if(bitRead(shiftA, 1) == 0 &&  momButt == LOW)
+    {
+      bitSet(shiftA, 1); 
+    }
+  else if(bitRead(shiftA, 1) == 1 && momButt == HIGH)
+    {
+      bitClear(shiftA, 1); 
+    }  
+  momButt = digitalRead(aone);
+
+  if(bitRead(shiftA, 2) == 0 &&  momButt == LOW)
+    {
+      bitSet(shiftA, 2); 
+    }
+  else if(bitRead(shiftA, 2) == 1 && momButt == HIGH)
+    {
+      bitClear(shiftA, 2); 
+    }  
+  momButt = digitalRead(bzero);
+
+  if(bitRead(shiftA, 5) == 0 &&  momButt == LOW)
+    {
+      bitSet(shiftA, 5); 
+    }
+  else if(bitRead(shiftA, 5) == 1 && momButt == HIGH)
+    {
+      bitClear(shiftA, 5); 
+    }  
+  momButt = digitalRead(bone);
+
+  if(bitRead(shiftA, 6) == 0 &&  momButt == LOW)
+    {
+      bitSet(shiftA, 6); 
+    }
+  else if(bitRead(shiftA, 6) == 1 && momButt == HIGH)
+    {
+      bitClear(shiftA, 6); 
+    }  
+
+  momButt = digitalRead(momButton);
+  
+  if(momButt==HIGH)
+  {
+    byte addA = B00000000;
+    byte addB = B00000000;
+    if(bitRead(shiftA, 1))
+    {  bitWrite(addA, 0, 0);
+    }
+    else{
+      bitWrite(addA, 0, 1);
+    }
+    
+    if(bitRead(shiftA, 2))
+    {  bitWrite(addA, 1, 0);
+    }
+    else{
+      bitWrite(addA, 1, 1);
+    }
+   if(bitRead(shiftA, 5))
+    {  bitWrite(addB, 0, 0);
+    }
+    else{
+      bitWrite(addB, 0, 1);
+    }
+    if(bitRead(shiftA, 6))
+    {  bitWrite(addB, 1, 0);
+    }
+    else{
+      bitWrite(addB, 1, 1);
+    }
+    shiftB = ~(((addA+addB)));
+  }
+  
+
+  shiftOut(dataPin, clockPin, shiftB); 
+  shiftOut(dataPin, clockPin, shiftA); 
+  digitalWrite(latchPin, 1);
+
+}
+
+void shiftOut(int myDataPin, int myClockPin, byte myDataOut) {
+  // This shifts 8 bits out MSB first, 
+  //on the rising edge of the clock,
+  //clock idles low
+
+//internal function setup
+  int i=0;
+  int pinState;
+  pinMode(myClockPin, OUTPUT);
+  pinMode(myDataPin, OUTPUT);
+
+ //clear everything out just in case to
+ //prepare shift register for bit shifting
+  digitalWrite(myDataPin, 0);
+  digitalWrite(myClockPin, 0);
+
+  //for each bit in the byte myDataOut�
+  //NOTICE THAT WE ARE COUNTING DOWN in our for loop
+  //This means that %00000001 or "1" will go through such
+  //that it will be pin Q0 that lights. 
+  for (i=7; i>=0; i--)  {
+    digitalWrite(myClockPin, 0);
+
+    //if the value passed to myDataOut and a bitmask result 
+    // true then... so if we are at i=6 and our value is
+    // %11010100 it would the code compares it to %01000000 
+    // and proceeds to set pinState to 1.
+    if ( myDataOut & (1<<i) ) {
+      pinState= 1;
+    }
+    else {  
+ 
+      pinState= 0;
+    }
+
+    //Sets the pin to HIGH or LOW depending on pinState
+    digitalWrite(myDataPin, pinState);
+    //register shifts bits on upstroke of clock pin  
+    digitalWrite(myClockPin, 1);
+    //zero the data pin after shift to prevent bleed through
+    digitalWrite(myDataPin, 0);
+  }
+
+  //stop shifting
+  digitalWrite(myClockPin, 0);
+}
